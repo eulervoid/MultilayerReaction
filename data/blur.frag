@@ -5,7 +5,6 @@ precision mediump int;
 
 #define PROCESSING_TEXTURE_SHADER
 
-uniform float alpha;
 uniform sampler2D texture;
 uniform vec2 texOffset;
 
@@ -39,5 +38,5 @@ void main(void) {
   vec4 sum = (1.0 * col0 + 2.0 * col1 + 1.0 * col2 +
               2.0 * col3 + 4.0 * col4 + 2.0 * col5 +
               1.0 * col6 + 2.0 * col7 + 1.0 * col8) / 16.0;
-  gl_FragColor = gl_FragColor * (1.-alpha) + (vec4(sum.rgb, 1.0) * vertColor) * alpha;  
+  gl_FragColor = vec4(sum.rgb, 1.0) * vertColor;  
 }

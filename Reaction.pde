@@ -1,11 +1,12 @@
 import controlP5.*;
 
 ControlP5 cp5;
-float dA, dB, feed, kill, noiseamt, noisemv, noisesize, flow;
+float dA0, dB0, feed0, kill0, noiseamt, noisemv, noisesize, flow, balpha;
+float dA1, dB1, feed1, kill1;
 color color1, color2, color3;
 
 PShader reaction, blur, colorize;
-PGraphics pglow, pg, pgcolor;
+PGraphics pg0, pg1, pg2, pgblur, pgcolor;
 int count = 0;
 boolean reset;
 int iterations = 1;
@@ -14,26 +15,34 @@ boolean colorizeit = false;
 boolean record = false;
 boolean paused = false;
 boolean brush = false;
+boolean blurEnabled = false;
+int mode = 0;
+
+void addParamSliders(int layerId) {
+  float offset = layerId * 260;
+  cp5.addSlider("dA"+layerId).setPosition(30+offset,30)
+                       .setSize(200,10)
+                       .setRange(0,1.)
+                       .setValue(.9);
+  cp5.addSlider("dB"+layerId).setPosition(30+offset,50)
+                       .setSize(200,10)
+                       .setRange(0,1.)
+                       .setValue(.4);
+  cp5.addSlider("feed"+layerId).setPosition(30+offset,70)
+                       .setSize(200,10)
+                       .setRange(0,1.)
+                       .setValue(.0434);
+  cp5.addSlider("kill"+layerId).setPosition(30+offset,90)
+                       .setSize(200,10)
+                       .setRange(0,1.)
+                       .setValue(.055);
+}
 
 void setup() {
   size(1000, 1000, P2D);
   cp5 = new ControlP5(this);
-  cp5.addSlider("dA").setPosition(30,30)
-                       .setSize(200,10)
-                       .setRange(0,1.)
-                       .setValue(.9);
-  cp5.addSlider("dB").setPosition(30,50)
-                       .setSize(200,10)
-                       .setRange(0,1.)
-                       .setValue(.4);
-  cp5.addSlider("feed").setPosition(30,70)
-                       .setSize(200,10)
-                       .setRange(0,1.)
-                       .setValue(.0434);
-  cp5.addSlider("kill").setPosition(30,90)
-                       .setSize(200,10)
-                       .setRange(0,1.)
-                       .setValue(.055);
+  addParamSliders(0);
+  addParamSliders(1);
   cp5.addSlider("noiseamt").setPosition(30,130)
                       .setSize(200,10)
                       .setRange(0,.1)
@@ -50,30 +59,58 @@ void setup() {
                       .setSize(200,10)
                       .setRange(0,2.)
                       .setValue(1);
+  cp5.addSlider("balpha").setPosition(30,210)
+                      .setSize(200,10)
+                      .setRange(0,1.)
+                      .setValue(0);
   cp5.addColorWheel("color1" , width-130, 30 , 100).setRGB(color(.7*255, .1*255, .95*255));
   cp5.addColorWheel("color2" , width-130, 150 , 100).setRGB(color(0, .4*255, .6*255));
   cp5.addColorWheel("color3" , width-130, 270 , 100).setRGB(color(0, .05*255, .2*255));
 
-  pg = createGraphics(width, height, P2D);
-  pg.noSmooth();
-  pglow = createGraphics(width/8, height/8, P2D);
-  pglow.noSmooth();
+  pg0 = createGraphics(width*2, height*2, P2D);
+  pg0.noSmooth();
+  pg1 = createGraphics(width/4, height/4, P2D);
+  pg1.noSmooth();
+  pg2 = createGraphics(width/16, height/16, P2D);
+  pg2.noSmooth();
+  pgblur = createGraphics(pg0.width, pg0.height, P2D);
+  pgblur.noSmooth();
   pgcolor = createGraphics(width, height, P2D);
   reaction = loadShader("reaction.frag");
   colorize = loadShader("colorize.frag");
   blur = loadShader("blur.frag");
-  colorize.set("resolution", float(pg.width), float(pg.height));
+  colorize.set("resolution", float(pg0.width), float(pg0.height));
 }
 
 PVector colorVec(color c) {
   return new PVector(red(c)/255., green(c)/255., blue(c)/255.);
 }
 
+void setReactionParameters(int layerId) {
+  if(layerId == 0) {
+    reaction.set("dA", dA0);
+    reaction.set("dB", dB0);
+    reaction.set("kill", feed0);
+    reaction.set("feed", kill0);
+    reaction.set("resolution", float(pg0.width), float(pg0.height));
+  }
+  else if(layerId == 1) {
+    reaction.set("dA", dA1);
+    reaction.set("dB", dB1);
+    reaction.set("kill", feed1);
+    reaction.set("feed", kill1);
+    reaction.set("resolution", float(pg1.width), float(pg1.height));
+  }
+  else if(layerId == 2) {
+    reaction.set("dA", dA1);
+    reaction.set("dB", dB1);
+    reaction.set("kill", feed1);
+    reaction.set("feed", kill1);
+    reaction.set("resolution", float(pg2.width), float(pg2.height));
+  }
+}
+
 void draw() {
-  reaction.set("dA", dA);
-  reaction.set("dB", dB);
-  reaction.set("kill", feed);
-  reaction.set("feed", kill);
   reaction.set("noiseamt", noiseamt);
   reaction.set("noisemv", noisemv);
   reaction.set("noisesize", noisesize);
@@ -91,37 +128,67 @@ void draw() {
     reaction.set("mouse", x, y);
 
     if(!paused) {
-      reaction.set("resolution", float(pglow.width), float(pglow.height));
-      pglow.beginDraw();
-      pglow.shader(reaction);
-      pglow.background(0);
-      pglow.rect(0, 0, pglow.width, pglow.height);
-      pglow.endDraw();
-      reaction.set("resolution", float(pg.width), float(pg.height));
-      pg.beginDraw();
-      pg.shader(blur);
-      pg.image(pglow, 0, 0, pg.width, pg.height);
-      pg.resetShader();
-      pg.endDraw();
-      pg.beginDraw();
-      pg.background(0);
-      pg.shader(reaction);
-      pg.rect(0, 0, pg.width, pg.height);
-      pg.endDraw();
+      // low res.
+      setReactionParameters(2);
+      pg2.beginDraw();
+      pg2.shader(reaction);
+      pg2.background(0);
+      pg2.rect(0, 0, pg2.width, pg2.height);
+      pg2.endDraw();
+
+      // apply blur
+      pgblur.beginDraw();
+      pgblur.shader(blur);
+      pgblur.image(pg2, 0, 0, pgblur.width, pgblur.height);
+      pgblur.endDraw();
+
+      // mid res
+      setReactionParameters(1);
+      pg1.beginDraw();
+      pg1.tint(255, balpha*255);
+      pg1.image(pgblur, 0, 0, pg1.width, pg1.height);
+      pg1.endDraw();
+      pg1.beginDraw();
+      pg1.shader(reaction);
+      pg1.rect(0, 0, pg1.width, pg1.height);
+      pg1.endDraw();
+
+      // apply blur
+      pgblur.beginDraw();
+      pgblur.shader(blur);
+      pgblur.image(pg1, 0, 0, pgblur.width, pgblur.height);
+      pgblur.endDraw();
+
+      // high res
+      setReactionParameters(0);
+      pg0.beginDraw();
+      pg0.resetShader();
+      pg0.tint(255, balpha*255);
+      pg0.image(pgblur, 0, 0, pg0.width, pg0.height);
+      pg0.endDraw();
+      pg0.beginDraw();
+      pg0.background(0);
+      pg0.shader(reaction);
+      pg0.rect(0, 0, pg0.width, pg0.height);
+      pg0.endDraw();
     }
+
+    PGraphics tmp = pg0;
+    if(mode == 1) tmp = pg1;
+    else if(mode == 2) tmp = pg2;
 
     if(colorizeit) {
       pgcolor.beginDraw();
       pgcolor.background(0);
       pgcolor.shader(colorize);
-      pgcolor.image(pg, 0, 0, width, height);
+      pgcolor.image(tmp, 0, 0, width, height);
       pgcolor.resetShader();
       pgcolor.endDraw();
       image(pgcolor, 0, 0, width, height);
       if(record) pgcolor.save("frames/frame"+frameCount+".tga");
     }
     else {
-      image(pg, 0, 0, width, height);
+      image(tmp, 0, 0, width, height);
     }
 
     // reload shader every 100 frames
@@ -136,15 +203,14 @@ void draw() {
 
 void reloadShaders() {
   reaction = loadShader("reaction.frag");
-  reaction.set("resolution", float(pg.width), float(pg.height));
 }
 
 void seedWithTex(String texpath) {
   PImage tex = loadImage(texpath);
-  pg.beginDraw();
-  pg.resetShader();
-  pg.image(tex, 0, 0, pg.width, pg.height);
-  pg.endDraw();
+  pg0.beginDraw();
+  pg0.resetShader();
+  pg0.image(tex, 0, 0, pg0.width, pg0.height);
+  pg0.endDraw();
 }
 
 void keyPressed() {
@@ -158,4 +224,8 @@ void keyPressed() {
   if(key == '.') seedWithTex("data/tex.png");
   if(key == 'p') paused = !paused;
   if(key == 'b') brush = !brush;
+  if(key == 'n') blurEnabled = !blurEnabled;
+  if(key == '0') mode = 0;
+  if(key == '1') mode = 1;
+  if(key == '2') mode = 2;
 }
