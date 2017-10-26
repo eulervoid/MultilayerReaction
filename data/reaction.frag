@@ -131,9 +131,9 @@ float noise( in vec2 p )
                      random( i + vec2(1.0,1.0) ), u.x), u.y);
 }
 
-mat3 kernel = mat3 ( 0.04, 0.21, 0.04,
-										 0.21,  -1., 0.21,
-										 0.04, 0.21, 0.04 );
+mat3 kernel = mat3 ( 0.05, 0.2, 0.05,
+										 0.2,  -1., 0.2,
+										 0.05, 0.2, 0.05 );
 
 vec4 laplace() {
 	vec4 sum = vec4(0);
@@ -144,6 +144,10 @@ vec4 laplace() {
 		}
 	}
 	return sum;
+}
+
+vec2 warpedPos(vec2 offset) {
+  return vec2(gl_FragCoord.xy + offset)/resolution.xy;
 }
 
 vec4 next() {
@@ -158,8 +162,8 @@ vec4 next() {
 	float ndB = dB + snoise(vec3(noisesize*.4*gl_FragCoord.xy/resolution.xy, 123.+time*noisemv)) * noiseamt;
 	a = a + ((dA * lapA) - (a * b * b) + (nfeed * (1. - a)));
 	b = b + ((ndB * lapB) + (a * b * b) - ((nkill+nfeed) * b));
-	//a = clamp(a, 0.0, 1.0);
-	//b = clamp(b, 0.0, 1.0);
+	a = clamp(a, 0.0, 1.0);
+	b = clamp(b, 0.0, 1.0);
 	return vec4(a, b, 0.0, 1.);
 }
 
