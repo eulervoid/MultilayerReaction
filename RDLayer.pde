@@ -3,13 +3,14 @@ class RDLayer {
   int id;
   PGraphics layer;
   PShader reaction;
+  PImage texture;
   Slider dA, dB, feed, kill, flow, noiseamt, noisesize, noisemv, alpha;
   Toggle brush;
   
   RDLayer(int id, int w, int h) {
     this.id = id;
     reaction = loadShader("data/reaction.frag");
-    layer = createGraphics(w, h, P2D);
+    layer = createGraphics(w, h, P3D);
     layer.noSmooth();
   }
   
@@ -43,6 +44,7 @@ class RDLayer {
     reaction.set("flow", flow.getValue());
     reaction.set("resolution", float(layer.width), float(layer.height));
     reaction.set("brush", brush.getValue());
+    reaction.set("texture", texture);
   }
   
   void addSliders(ControlP5 cp5, float x, float y) {
@@ -92,7 +94,4 @@ class RDLayer {
     layer.endDraw();
   }
   
-  void seedWithTex() {
-    
-  }
 }

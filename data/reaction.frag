@@ -8,6 +8,7 @@ uniform float time;
 uniform vec2 mouse;
 uniform vec2 resolution;
 uniform sampler2D ppixels;
+uniform sampler2D tex;
 uniform int clear;
 
 uniform float dA;
@@ -151,6 +152,10 @@ vec2 warpedPos(vec2 offset) {
 }
 
 vec4 next() {
+  //vec2 texcoord = vec2(1.,1.)-(gl_FragCoord.xy/resolution.xy);
+  //texcoord.x = 1.-texcoord.x;
+  //vec4 texpoint = texture2D(tex, vec2(1., 1.)-(gl_FragCoord.xy/resolution.xy));
+  //if(texpoint.g >= .2) return vec4(0., 0., 0., 1.);
 	vec4 current = texture2D(ppixels, (gl_FragCoord.xy/resolution.xy));
 	vec4 lapl = laplace();
 	float a = current.r;
@@ -159,9 +164,9 @@ vec4 next() {
 	float lapB = lapl.g;
 	float nfeed = feed + snoise(vec3(noisesize*.5*gl_FragCoord.xy/resolution.xy, time*noisemv)) * noiseamt;
 	float nkill = kill + sin(time*noisemv/100.) * 0.03;
-	float ndB = dB + snoise(vec3(noisesize*.4*gl_FragCoord.xy/resolution.xy, 123.+time*noisemv)) * noiseamt;
+	//float ndB = clamp(dB - texpoint.g, 0., 1.);
 	a = a + ((dA * lapA) - (a * b * b) + (nfeed * (1. - a)));
-	b = b + ((ndB * lapB) + (a * b * b) - ((nkill+nfeed) * b));
+	b = b + ((dB * lapB) + (a * b * b) - ((nkill+nfeed) * b));
 	a = clamp(a, 0.0, 1.0);
 	b = clamp(b, 0.0, 1.0);
 	return vec4(a, b, 0.0, 1.);

@@ -20,10 +20,12 @@ int mode = 0;
 RDLayer l1, l2, l3;
 
 void setup() {
-  size(1000, 1000, P2D);
+  int w = 1080;
+  int h = 1080;
+  size(1080, 1080, P3D);
   frameRate(30);
   cp5 = new ControlP5(this);
-  l1 = new RDLayer(1, 1920, 1920);
+  l1 = new RDLayer(1, w, h);
   l1.addSliders(cp5, 30, 30);
   
   l2 = new RDLayer(2, width/2, height/2);
@@ -108,8 +110,7 @@ void draw() {
       else
         image(pgcolor, 0, 0, width, height);
       if(record) {
-        pgcolor.save("stills/still"+floor(millis()/1000)+".tga");
-        record = false;
+        pgcolor.save("frames/frame"+floor(millis()/1000)+".tga");
       }
     }
     else {
@@ -129,9 +130,21 @@ void seedWithTex(RDLayer layer, String texpath) {
 }
 
 void seedWithTex(String texpath) {
-  seedWithTex(l1, texpath);
-  seedWithTex(l2, texpath);
-  seedWithTex(l3, texpath);
+  try {
+    seedWithTex(l1, texpath);
+    seedWithTex(l2, texpath);
+    seedWithTex(l3, texpath);
+  }
+  catch (Exception e) {
+    // just don't crash if the texture does not exist
+  }
+}
+
+void setParamMap(String texpath) {
+  PImage tex = loadImage(texpath);
+  l1.texture = tex;
+  l2.texture = tex;
+  l3.texture = tex;
 }
 
 void saveState() {
@@ -159,8 +172,7 @@ void keyPressed() {
     l1.clear(); l2. clear(); l3.clear();
   }
   if(key == 'c') colorizeit = !colorizeit;
-  if(key == 'r') seedWithTex("data/tex2.png");
-  if(key == 't') seedWithTex("data/tex3.png");
+  if(key == 'r') seedWithTex("data/texture.png");
   if(key == ' ') paused = !paused;
   if(key == 'n') blurEnabled = !blurEnabled;
   if(key == '1') mode = 1;
