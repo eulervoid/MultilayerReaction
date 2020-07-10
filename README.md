@@ -1,3 +1,5 @@
+![Example](example.gif)
+
 # Multi-Layer Reaction/Diffusion
 
 This processing sketch renders 3 layers of reaction diffusion at different scales that influence each other. This leads to different detail-levels in the result. Have a look at the `keyPressed` function to see what the options are:
