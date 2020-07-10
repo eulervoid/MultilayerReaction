@@ -110,7 +110,7 @@ void draw() {
       else
         image(pgcolor, 0, 0, width, height);
       if(record) {
-        pgcolor.save("frames/frame"+floor(millis()/1000)+".tga");
+        pgcolor.save("frames/frame"+floor(millis()/1000)+".png");
       }
     }
     else {
